@@ -3,10 +3,10 @@
 This repository contains the OpenClaw skill definition in **[`SKILL.md`](./SKILL.md)**.
 
 ## ClawHub
-- Skill page: https://clawhub.ai/skills/unifi-skill
+- Skill page: https://clawhub.ai/skills/unifi-site-manager
 - Install:
   ```bash
-  clawhub install unifi-skill --registry "https://auth.clawdhub.com"
+  clawhub install unifi-site-manager --registry "https://auth.clawdhub.com"
   ```
 
 ## Local development
