@@ -1,6 +1,6 @@
 ---
 name: unifi
-version: 1.1.0
+version: 1.1.1
 homepage: https://github.com/odrobnik/unifi-skill
 description: Monitor UniFi network infrastructure via the UniFi Site Manager API. Use to list hosts/sites/devices/APs and get high-level client/device counts.
 metadata:
