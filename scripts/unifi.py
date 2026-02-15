@@ -12,9 +12,18 @@ import os
 from pathlib import Path
 
 import requests
+import re
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+def _sanitize_path_param(value: str) -> str:
+    """Validate and sanitize a path parameter to prevent path traversal/injection."""
+    # Allow alphanumeric, hyphens, underscores, colons, dots (for MACs, UUIDs, IDs)
+    if not re.match(r'^[a-zA-Z0-9\-_:\.]+$', value):
+        raise SystemExit(f"Error: Invalid path parameter: {value!r}")
+    return value
 
 
 def _load_config() -> Dict[str, Any]:
@@ -90,13 +99,13 @@ def api_request(path: str) -> Dict[str, Any]:
 
 def _local_api_request(path: str, gateway_ip: str, api_key: str) -> Dict[str, Any]:
     """Make an integration API request to the local UniFi gateway."""
-    url = f"https://{gateway_ip}/proxy/network/integration{path}"
+    url = f"http://{gateway_ip}/proxy/network/integration{path}"
     headers = {
         "X-API-KEY": api_key,
         "Accept": "application/json",
     }
     try:
-        resp = requests.get(url, headers=headers, timeout=15, verify=False)
+        resp = requests.get(url, headers=headers, timeout=15)
         if not resp.ok:
             _handle_api_error(resp, url)
         return resp.json()
@@ -111,7 +120,7 @@ def _local_api_request(path: str, gateway_ip: str, api_key: str) -> Dict[str, An
 def _local_classic_request(path: str, gateway_ip: str, api_key: str, method: str = "GET",
                            payload: Optional[Dict] = None) -> Dict[str, Any]:
     """Make a classic API request to the local UniFi gateway."""
-    url = f"https://{gateway_ip}/proxy/network/api/s/default/{path}"
+    url = f"http://{gateway_ip}/proxy/network/api/s/default/{path}"
     headers = {
         "X-API-KEY": api_key,
         "Accept": "application/json",
@@ -119,9 +128,9 @@ def _local_classic_request(path: str, gateway_ip: str, api_key: str, method: str
     try:
         if method == "PUT" and payload is not None:
             headers["Content-Type"] = "application/json"
-            resp = requests.put(url, headers=headers, json=payload, timeout=15, verify=False)
+            resp = requests.put(url, headers=headers, json=payload, timeout=15)
         else:
-            resp = requests.get(url, headers=headers, timeout=15, verify=False)
+            resp = requests.get(url, headers=headers, timeout=15)
         if not resp.ok:
             _handle_api_error(resp, url)
         return resp.json()
@@ -213,9 +222,9 @@ def _is_local_reachable() -> bool:
         _is_local_reachable._cached = False
         return False
     try:
-        resp = requests.get(f"https://{gateway_ip}/proxy/network/api/s/default/self",
+        resp = requests.get(f"http://{gateway_ip}/proxy/network/api/s/default/self",
                             headers={"X-API-KEY": local_api_key, "Accept": "application/json"},
-                            timeout=3, verify=False)
+                            timeout=3)
         _is_local_reachable._cached = resp.ok
     except (requests.ConnectionError, requests.Timeout):
         _is_local_reachable._cached = False
@@ -297,7 +306,7 @@ def _integration_request_paginated(path: str, local: bool = False, limit: int = 
 def _resolve_site_id(args) -> str:
     """Resolve site ID from args or auto-detect."""
     if hasattr(args, 'site') and args.site:
-        return args.site
+        return _sanitize_path_param(args.site)
 
     # Check config for site_id
     site_id = CONFIG.get("site_id")
@@ -658,7 +667,7 @@ def cmd_get_device(args):
     """Get detailed info about a specific device."""
     local = getattr(args, 'local', False)
     site_id = _resolve_site_id(args)
-    device_id = args.device_id
+    device_id = _sanitize_path_param(args.device_id)
 
     data = _integration_request(f"/v1/sites/{site_id}/devices/{device_id}", local=local)
 
@@ -728,7 +737,7 @@ def cmd_get_client(args):
     """Get detailed info about a specific client."""
     local = getattr(args, 'local', False)
     site_id = _resolve_site_id(args)
-    client_id = args.client_id
+    client_id = _sanitize_path_param(args.client_id)
 
     data = _integration_request(f"/v1/sites/{site_id}/clients/{client_id}", local=local)
 
