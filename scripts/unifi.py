@@ -1319,6 +1319,100 @@ def cmd_set_client(args):
     print()
 
 
+def cmd_get_network_dns(args):
+    """Show DHCP DNS config for one or all networks."""
+    local = getattr(args, 'local', False)
+    networks = _classic_request("rest/networkconf", local=local)
+
+    results = []
+    for net in networks["data"]:
+        purpose = net.get("purpose", "")
+        if purpose in ("wan", "remote-user-vpn"):
+            continue
+        name = net.get("name", "?")
+        if args.network and name.lower() != args.network.lower():
+            continue
+        enabled = net.get("dhcpd_dns_enabled", False)
+        dns_servers = {}
+        for i in range(1, 5):
+            v = net.get(f"dhcpd_dns_{i}", "")
+            if v:
+                dns_servers[f"dns_{i}"] = v
+        results.append({
+            "network": name,
+            "subnet": net.get("ip_subnet", ""),
+            "dhcpd_dns_enabled": enabled,
+            **dns_servers,
+        })
+
+    if not results and args.network:
+        print(f"Error: Network '{args.network}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    if getattr(args, 'json', False):
+        print(json.dumps(results if len(results) != 1 else results[0], indent=2))
+    else:
+        for r in results:
+            print(f"\n=== {r['network']} ({r['subnet']}) ===\n")
+            print(f"  Override: {'enabled' if r['dhcpd_dns_enabled'] else 'disabled (using gateway)'}")
+            for i in range(1, 5):
+                v = r.get(f"dns_{i}")
+                if v:
+                    print(f"  DNS {i}: {v}")
+        print()
+
+
+def cmd_set_network_dns(args):
+    """Set or show DHCP DNS servers for a network by name."""
+    local = getattr(args, 'local', False)
+    networks = _classic_request("rest/networkconf", local=local)
+
+    net = None
+    for n in networks["data"]:
+        if n.get("name", "").lower() == args.network.lower():
+            net = n
+            break
+    if not net:
+        print(f"Error: Network '{args.network}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    net_id = _sanitize_path_param(net["_id"])
+    payload: Dict[str, Any] = {}
+    changes: List[str] = []
+
+    if args.dns1 == "auto":
+        payload["dhcpd_dns_enabled"] = False
+        changes.append("  DNS override: disabled (using gateway)")
+    elif args.dns1 is not None:
+        payload["dhcpd_dns_enabled"] = True
+        payload["dhcpd_dns_1"] = args.dns1
+        old = net.get("dhcpd_dns_1", "(none)")
+        changes.append(f"  DNS 1: {old} → {args.dns1}")
+
+    for i, arg in [(2, args.dns2), (3, args.dns3), (4, args.dns4)]:
+        if arg is not None:
+            val = "" if arg == "off" else arg
+            payload[f"dhcpd_dns_{i}"] = val
+            old = net.get(f"dhcpd_dns_{i}") or "(none)"
+            changes.append(f"  DNS {i}: {old} → {arg}")
+
+    if not payload:
+        print("Error: No changes specified. Use --dns1, --dns2, --dns3, --dns4",
+              file=sys.stderr)
+        sys.exit(1)
+
+    result = _classic_request(f"rest/networkconf/{net_id}", local=local,
+                              method="PUT", payload=payload)
+
+    if getattr(args, 'json', False):
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"\n✓ Network DNS updated ({net.get('name')}):")
+        for change in changes:
+            print(change)
+        print()
+
+
 def cmd_label_client(args):
     """Set custom name for a client by MAC. (Shorthand for set-client --name)"""
     args.fixed_ip = None
@@ -1672,6 +1766,29 @@ def main():
     parser_ap_clients.add_argument("--local", action="store_true",
                                     help="Force local gateway access")
     parser_ap_clients.set_defaults(func=cmd_list_ap_clients)
+
+    parser_get_dns = subparsers.add_parser("get-network-dns",
+                                              help="Show DHCP DNS config for networks")
+    parser_get_dns.add_argument("network", nargs="?", default=None,
+                                 help="Network name (omit for all)")
+    parser_get_dns.add_argument("--local", action="store_true",
+                                 help="Force local gateway access")
+    parser_get_dns.set_defaults(func=cmd_get_network_dns)
+
+    parser_set_dns = subparsers.add_parser("set-network-dns",
+                                              help="Set or show DHCP DNS servers for a network")
+    parser_set_dns.add_argument("network", help="Network name (e.g. 'Default', 'LAN2')")
+    parser_set_dns.add_argument("--dns1", default=None,
+                                 help="Primary DNS server (or 'auto' to disable override)")
+    parser_set_dns.add_argument("--dns2", default=None,
+                                 help="Secondary DNS (or 'off' to clear)")
+    parser_set_dns.add_argument("--dns3", default=None,
+                                 help="Tertiary DNS (or 'off' to clear)")
+    parser_set_dns.add_argument("--dns4", default=None,
+                                 help="Quaternary DNS (or 'off' to clear)")
+    parser_set_dns.add_argument("--local", action="store_true",
+                                 help="Force local gateway access")
+    parser_set_dns.set_defaults(func=cmd_set_network_dns)
 
     parser_firmware = subparsers.add_parser("firmware-status",
                                              help="Show firmware versions and update availability")
