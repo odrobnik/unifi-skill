@@ -1,42 +1,5 @@
 {
-  "api_key": "YOUR_UI_API_KEY",
-  "base_url": "https://api.ui.com",
-  "ap_locations": {
-    "70A741EC92AF": {
-      "name": "Aquarium",
-      "location": "Ground Floor - Aquarium Area",
-      "model": "U6 IW"
-    },
-    "788A204882CD": {
-      "name": "Living",
-      "location": "Ground Floor - Living Room",
-      "model": "AC Pro"
-    },
-    "788A2083BF44": {
-      "name": "Technics",
-      "location": "Lower Level - Technics Room",
-      "model": "AC Pro"
-    },
-    "788A20B3354B": {
-      "name": "Rooftop",
-      "location": "Roof - Outdoor",
-      "model": "AC Mesh"
-    },
-    "E063DAB9EF30": {
-      "name": "Booster",
-      "location": "Outdoor - Signal Booster",
-      "model": "AC Mesh"
-    },
-    "F09FC230DED1": {
-      "name": "Penthouse",
-      "location": "Upper Floor - Penthouse",
-      "model": "AC Pro"
-    },
-    "F492BF6041A3": {
-      "name": "Workshop",
-      "location": "Lower Level - Workshop",
-      "model": "AC IW"
-    }
-  },
-  "note": "AP locations are mapped to friendly names for device tracking. Update these locations as needed."
+  "api_key": "YOUR_SITE_MANAGER_API_KEY",
+  "gateway_ip": "192.168.0.2",
+  "local_api_key": "YOUR_LOCAL_API_KEY"
 }
