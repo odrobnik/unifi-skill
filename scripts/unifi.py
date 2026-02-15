@@ -37,16 +37,13 @@ def _load_config() -> Dict[str, Any]:
             "Missing UniFi API key. Set UNIFI_API_KEY or create config.json (see config.json.example)."
         )
 
-    base_url = os.environ.get("UNIFI_BASE_URL") or cfg.get("base_url") or "https://api.ui.com"
-
     cfg["api_key"] = api_key
-    cfg["base_url"] = base_url
     return cfg
 
 
 CONFIG = _load_config()
 API_KEY = CONFIG["api_key"]
-BASE_URL = CONFIG["base_url"]
+BASE_URL = "https://api.ui.com"
 
 
 # ---------------------------------------------------------------------------
