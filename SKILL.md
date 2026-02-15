@@ -1,6 +1,6 @@
 ---
-name: unifi
-version: 3.0.4
+name: unifi-site-manager
+version: 3.1.0
 homepage: https://github.com/odrobnik/unifi-skill
 description: Monitor and configure UniFi network infrastructure. Auto-routes between local gateway and cloud connector. Manage hosts, sites, devices, clients, WLANs, radios, firmware, and events.
 metadata:

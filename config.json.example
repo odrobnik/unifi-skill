@@ -1,5 +1,6 @@
 {
   "api_key": "YOUR_SITE_MANAGER_API_KEY",
   "gateway_ip": "192.168.0.2",
-  "local_api_key": "YOUR_LOCAL_API_KEY"
+  "local_api_key": "YOUR_LOCAL_API_KEY",
+  "gateway_fingerprint": "SHA256_FINGERPRINT_OF_GATEWAY_CERT"
 }
